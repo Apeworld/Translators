@@ -18,7 +18,7 @@ export default function MasonLiveTranslator() {
   const requestMicrophonePermission = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(track => track.stop()); // 마이크 권한만 요청하고 즉시 해제
+      stream.getTracks().forEach(track => track.stop());
       console.log("Microphone permission granted");
     } catch (error) {
       console.error("Microphone permission denied", error);
@@ -110,13 +110,13 @@ export default function MasonLiveTranslator() {
   };
 
   return (
-    <div className="p-5 text-center">
-      <h1 className="text-2xl font-bold mb-4">Mason 실시간 번역기</h1>
-      <button onClick={requestMicrophonePermission} className="bg-green-500 text-white p-2 rounded mb-4">
+    <div className="p-8 max-w-lg mx-auto bg-white shadow-xl rounded-lg text-center">
+      <h1 className="text-3xl font-bold mb-6 text-blue-600">Mason 실시간 번역기</h1>
+      <button onClick={requestMicrophonePermission} className="bg-green-500 text-white py-2 px-4 rounded mb-4 shadow-md">
         마이크 권한 요청
       </button>
-      <div className="flex gap-4 justify-center">
-        <select value={inputLanguage} onChange={(e) => setInputLanguage(e.target.value)} className="border p-2 mb-4">
+      <div className="flex gap-4 justify-center mb-4">
+        <select value={inputLanguage} onChange={(e) => setInputLanguage(e.target.value)} className="border p-2 rounded">
           <option value="auto">Auto Detect</option>
           <option value="en">English</option>
           <option value="es">Spanish</option>
@@ -126,7 +126,7 @@ export default function MasonLiveTranslator() {
           <option value="ko">Korean</option>
           <option value="vi">Vietnamese</option>
         </select>
-        <select value={outputLanguage} onChange={(e) => setOutputLanguage(e.target.value)} className="border p-2 mb-4">
+        <select value={outputLanguage} onChange={(e) => setOutputLanguage(e.target.value)} className="border p-2 rounded">
           <option value="en">English</option>
           <option value="es">Spanish</option>
           <option value="fr">French</option>
@@ -136,18 +136,16 @@ export default function MasonLiveTranslator() {
           <option value="vi">Vietnamese</option>
         </select>
       </div>
-      <div className="mb-4">
-        <button onClick={isListening ? stopListening : startListening} className="bg-blue-500 text-white p-2 rounded">
-          {isListening ? "Stop Listening" : "Start Listening"}
-        </button>
+      <button onClick={isListening ? stopListening : startListening} className="bg-blue-500 text-white py-2 px-4 rounded shadow-md">
+        {isListening ? "Stop Listening" : "Start Listening"}
+      </button>
+      <div className="mt-6 p-4 border rounded bg-gray-100 shadow-sm">
+        <h2 className="font-semibold text-gray-700">Recognized Text:</h2>
+        <p className="text-lg text-gray-900">{text}</p>
       </div>
-      <div className="mt-4 p-3 border rounded">
-        <h2 className="font-bold">Recognized Text:</h2>
-        <p>{text}</p>
-      </div>
-      <div className="mt-4 p-3 border rounded bg-gray-100">
-        <h2 className="font-bold">Translated Text:</h2>
-        <p>{translatedText}</p>
+      <div className="mt-4 p-4 border rounded bg-yellow-100 shadow-sm">
+        <h2 className="font-semibold text-gray-700">Translated Text:</h2>
+        <p className="text-lg text-gray-900">{translatedText}</p>
       </div>
     </div>
   );
