@@ -1,32 +1,23 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 
-export default function WhisperTranslator() {
+export default function MasonLiveTranslator() {
   const [text, setText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
   const [language, setLanguage] = useState("en");
   const [isListening, setIsListening] = useState(false);
   const recognition = useRef(null);
 
-  // 마이크 권한 요청 함수
-  const requestMicrophonePermission = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(track => track.stop()); // 마이크 중지
-      console.log("Microphone permission granted");
-    } catch (error) {
-      console.error("Microphone permission denied", error);
-      alert("마이크 권한이 거부되었습니다. 브라우저 설정에서 마이크 사용을 허용해주세요.");
-    }
-  };
-
-  // 음성 인식 초기화
-  const initializeRecognition = () => {
+  useEffect(() => {
     if (!("webkitSpeechRecognition" in window)) {
       alert("Your browser does not support speech recognition.");
       return;
     }
+  }, []);
 
-    if (!recognition.current) {
+  const initializeRecognition = () => {
+    if (recognition.current) return;
+
+    try {
       recognition.current = new webkitSpeechRecognition();
       recognition.current.continuous = true;
       recognition.current.interimResults = true;
@@ -39,22 +30,17 @@ export default function WhisperTranslator() {
 
       recognition.current.onerror = (event) => {
         console.error("Speech recognition error", event);
-        const errorMessage = event?.error ?? event?.message ?? event?.type ?? "Unknown error";
-        alert(`음성 인식 오류 발생: ${errorMessage}`);
+        alert(`음성 인식 오류 발생: ${event.error || "Unknown error"}`);
         setIsListening(false);
       };
 
       recognition.current.onend = () => {
         console.log("Speech recognition ended");
         setIsListening(false);
-        // 음성 인식 종료 후 자동 재시작 (필요한 경우)
-        if (isListening) {
-          recognition.current.start();
-        }
       };
 
       recognition.current.onresult = (event) => {
-        if (!event?.results || event.results.length === 0) return;
+        if (!event.results || event.results.length === 0) return;
 
         const finalTranscript = Array.from(event.results)
           .filter((result) => result.isFinal)
@@ -62,27 +48,29 @@ export default function WhisperTranslator() {
           .join(" ");
 
         setText(finalTranscript.trim());
-        translateText(finalTranscript.trim());
+        translateText(finalTranscript.trim(), language);
       };
+    } catch (error) {
+      console.error("Error initializing speech recognition", error);
+      alert("음성 인식을 초기화하는 동안 오류가 발생했습니다. 다시 시도하세요.");
     }
   };
 
-  // 음성 인식 시작
-  const startListening = useCallback(async () => {
+  const startListening = useCallback(() => {
+    if (!recognition.current) {
+      console.log("Reinitializing speech recognition...");
+      initializeRecognition();
+    }
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true }); // 마이크 권한 요청
-      if (!recognition.current) {
-        initializeRecognition();
-      }
+      recognition.current.lang = language;
       recognition.current.start();
       setIsListening(true);
     } catch (error) {
       console.error("Error starting speech recognition", error);
-      alert("마이크 사용이 차단되었습니다. 브라우저 설정에서 마이크 권한을 확인하고 다시 시도하세요.");
+      alert("음성 인식을 시작할 수 없습니다. 브라우저 설정을 확인하세요.");
     }
-  }, []);
+  }, [language]);
 
-  // 음성 인식 중지
   const stopListening = useCallback(() => {
     if (recognition.current) {
       try {
@@ -94,12 +82,11 @@ export default function WhisperTranslator() {
     }
   }, []);
 
-  // 번역 API 요청
-  const translateText = async (text) => {
+  const translateText = async (text, targetLang) => {
     if (!text) return;
     try {
       const response = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ko|${language}`
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ko|${targetLang}`
       );
       const data = await response.json();
       setTranslatedText(data?.responseData?.translatedText || "Translation error");
@@ -111,13 +98,7 @@ export default function WhisperTranslator() {
 
   return (
     <div className="p-5 text-center">
-      <h1 className="text-2xl font-bold mb-4">Whisper Translator</h1>
-      <button 
-        onClick={requestMicrophonePermission} 
-        className="bg-green-500 text-white p-2 rounded mb-4"
-      >
-        마이크 권한 요청
-      </button>
+      <h1 className="text-2xl font-bold mb-4">Mason 실시간 번역기</h1>
       <select 
         value={language} 
         onChange={(e) => setLanguage(e.target.value)} 
