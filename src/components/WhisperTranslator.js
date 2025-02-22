@@ -3,7 +3,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 export default function MasonLiveTranslator() {
   const [text, setText] = useState("");
   const [translatedText, setTranslatedText] = useState("");
-  const [language, setLanguage] = useState("en");
+  const [inputLanguage, setInputLanguage] = useState("auto"); // 입력 언어 선택
+  const [outputLanguage, setOutputLanguage] = useState("en"); // 번역 언어 선택
   const [isListening, setIsListening] = useState(false);
   const recognition = useRef(null);
 
@@ -33,7 +34,7 @@ export default function MasonLiveTranslator() {
       recognition.current = new SpeechRecognition();
       recognition.current.continuous = true;
       recognition.current.interimResults = true;
-      recognition.current.lang = "auto"; // 자동 감지
+      recognition.current.lang = inputLanguage;
 
       recognition.current.onstart = () => {
         console.log("Speech recognition started");
@@ -60,10 +61,7 @@ export default function MasonLiveTranslator() {
           .join(" ");
 
         setText(finalTranscript.trim());
-
-        const detectedLang = await detectLanguage(finalTranscript.trim());
-        console.log("Detected Language:", detectedLang);
-        translateText(finalTranscript.trim(), detectedLang, language);
+        translateText(finalTranscript.trim(), inputLanguage, outputLanguage);
       };
     } catch (error) {
       console.error("Error initializing speech recognition", error);
@@ -77,13 +75,14 @@ export default function MasonLiveTranslator() {
       initializeRecognition();
     }
     try {
+      recognition.current.lang = inputLanguage;
       recognition.current.start();
       setIsListening(true);
     } catch (error) {
       console.error("Error starting speech recognition", error);
       alert("음성 인식을 시작할 수 없습니다. 브라우저 설정을 확인하세요.");
     }
-  }, []);
+  }, [inputLanguage]);
 
   const stopListening = useCallback(() => {
     if (recognition.current) {
@@ -95,19 +94,6 @@ export default function MasonLiveTranslator() {
       }
     }
   }, []);
-
-  const detectLanguage = async (text) => {
-    try {
-      const response = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|en`
-      );
-      const data = await response.json();
-      return data?.responseData?.match?.language || "en";
-    } catch (error) {
-      console.error("Language detection error", error);
-      return "en";
-    }
-  };
 
   const translateText = async (text, sourceLang, targetLang) => {
     if (!text) return;
@@ -129,15 +115,27 @@ export default function MasonLiveTranslator() {
       <button onClick={requestMicrophonePermission} className="bg-green-500 text-white p-2 rounded mb-4">
         마이크 권한 요청
       </button>
-      <select value={language} onChange={(e) => setLanguage(e.target.value)} className="border p-2 mb-4">
-        <option value="en">English</option>
-        <option value="es">Spanish</option>
-        <option value="fr">French</option>
-        <option value="ja">Japanese</option>
-        <option value="zh-CN">Chinese</option>
-        <option value="ko">Korean</option>
-        <option value="vi">Vietnamese</option>
-      </select>
+      <div className="flex gap-4 justify-center">
+        <select value={inputLanguage} onChange={(e) => setInputLanguage(e.target.value)} className="border p-2 mb-4">
+          <option value="auto">Auto Detect</option>
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="ja">Japanese</option>
+          <option value="zh-CN">Chinese</option>
+          <option value="ko">Korean</option>
+          <option value="vi">Vietnamese</option>
+        </select>
+        <select value={outputLanguage} onChange={(e) => setOutputLanguage(e.target.value)} className="border p-2 mb-4">
+          <option value="en">English</option>
+          <option value="es">Spanish</option>
+          <option value="fr">French</option>
+          <option value="ja">Japanese</option>
+          <option value="zh-CN">Chinese</option>
+          <option value="ko">Korean</option>
+          <option value="vi">Vietnamese</option>
+        </select>
+      </div>
       <div className="mb-4">
         <button onClick={isListening ? stopListening : startListening} className="bg-blue-500 text-white p-2 rounded">
           {isListening ? "Stop Listening" : "Start Listening"}
