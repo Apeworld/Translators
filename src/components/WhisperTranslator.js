@@ -26,61 +26,23 @@ export default function MasonLiveTranslator() {
     }
   };
 
-  const initializeRecognition = () => {
-    if (recognition.current) return;
-
-    try {
+  const startListening = useCallback(async () => {
+    if (!recognition.current) {
+      console.log("Reinitializing speech recognition...");
       const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
       recognition.current = new SpeechRecognition();
       recognition.current.continuous = true;
       recognition.current.interimResults = true;
       recognition.current.lang = inputLanguage;
-
-      recognition.current.onstart = () => {
-        console.log("Speech recognition started");
-        setIsListening(true);
-      };
-
-      recognition.current.onerror = (event) => {
-        console.error("Speech recognition error", event);
-        alert(`음성 인식 오류 발생: ${event.error || "Unknown error"}`);
-        setIsListening(false);
-      };
-
-      recognition.current.onend = () => {
-        console.log("Speech recognition ended");
-        setIsListening(false);
-      };
-
-      recognition.current.onresult = async (event) => {
-        if (!event.results || event.results.length === 0) return;
-
-        const finalTranscript = Array.from(event.results)
-          .filter((result) => result.isFinal)
-          .map((result) => result[0]?.transcript || "")
-          .join(" ");
-
-        setText(finalTranscript.trim());
-        translateText(finalTranscript.trim(), inputLanguage, outputLanguage);
-      };
-    } catch (error) {
-      console.error("Error initializing speech recognition", error);
-      alert("음성 인식을 초기화하는 동안 오류가 발생했습니다. 다시 시도하세요.");
-    }
-  };
-
-  const startListening = useCallback(() => {
-    if (!recognition.current) {
-      console.log("Reinitializing speech recognition...");
-      initializeRecognition();
     }
     try {
+      await navigator.mediaDevices.getUserMedia({ audio: true }); // 모바일 지원 개선
       recognition.current.lang = inputLanguage;
       recognition.current.start();
       setIsListening(true);
     } catch (error) {
       console.error("Error starting speech recognition", error);
-      alert("음성 인식을 시작할 수 없습니다. 브라우저 설정을 확인하세요.");
+      alert("음성 인식을 시작할 수 없습니다. 브라우저 설정에서 마이크 권한을 확인하세요.");
     }
   }, [inputLanguage]);
 
