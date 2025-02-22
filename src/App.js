@@ -1,5 +1,5 @@
-import React from "react";
-import WhisperTranslator from "./components/WhisperTranslator"; // 번역기 컴포넌트 추가
+import React from 'react';
+import WhisperTranslator from './components/WhisperTranslator';
 
 function App() {
   return (
