@@ -17,7 +17,7 @@ export default function WhisperTranslator() {
       .then(() => {
         navigator.permissions.query({ name: "microphone" })
           .then((permissionStatus) => {
-            if (permissionStatus.state === "denied") {
+            if (permissionStatus.state !== "granted") {
               alert("마이크 권한이 거부되었습니다. 브라우저 설정에서 마이크 사용을 허용해주세요.");
               return;
             }
@@ -76,7 +76,8 @@ export default function WhisperTranslator() {
 
   const requestMicrophonePermission = async () => {
     try {
-      await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop()); // 권한만 요청하고 마이크 중지
       console.log("Microphone permission granted");
     } catch (error) {
       console.error("Microphone permission denied", error);
