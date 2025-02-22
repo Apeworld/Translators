@@ -7,34 +7,26 @@ export default function WhisperTranslator() {
   const [isListening, setIsListening] = useState(false);
   const recognition = useRef(null);
 
-  useEffect(() => {
+  // 마이크 권한 요청 함수
+  const requestMicrophonePermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop()); // 마이크 중지
+      console.log("Microphone permission granted");
+    } catch (error) {
+      console.error("Microphone permission denied", error);
+      alert("마이크 권한이 거부되었습니다. 브라우저 설정에서 마이크 사용을 허용해주세요.");
+    }
+  };
+
+  // 음성 인식 초기화
+  const initializeRecognition = () => {
     if (!("webkitSpeechRecognition" in window)) {
       alert("Your browser does not support speech recognition.");
       return;
     }
 
-    navigator.mediaDevices.getUserMedia({ audio: true })
-      .then(() => {
-        navigator.permissions.query({ name: "microphone" })
-          .then((permissionStatus) => {
-            if (permissionStatus.state !== "granted") {
-              alert("마이크 권한이 거부되었습니다. 브라우저 설정에서 마이크 사용을 허용해주세요.");
-              return;
-            }
-            initializeRecognition();
-          })
-          .catch((error) => console.error("Error checking microphone permissions", error));
-      })
-      .catch((error) => {
-        console.error("Microphone access denied", error);
-        alert("마이크 권한이 거부되었습니다. HTTPS 환경에서 실행 중인지 확인하고, 브라우저 설정에서 마이크 권한을 확인하세요.");
-      });
-  }, []);
-
-  const initializeRecognition = () => {
-    if (recognition.current) return;
-
-    try {
+    if (!recognition.current) {
       recognition.current = new webkitSpeechRecognition();
       recognition.current.continuous = true;
       recognition.current.interimResults = true;
@@ -55,6 +47,10 @@ export default function WhisperTranslator() {
       recognition.current.onend = () => {
         console.log("Speech recognition ended");
         setIsListening(false);
+        // 음성 인식 종료 후 자동 재시작 (필요한 경우)
+        if (isListening) {
+          recognition.current.start();
+        }
       };
 
       recognition.current.onresult = (event) => {
@@ -68,37 +64,25 @@ export default function WhisperTranslator() {
         setText(finalTranscript.trim());
         translateText(finalTranscript.trim());
       };
-    } catch (error) {
-      console.error("Error initializing speech recognition", error);
-      alert("음성 인식을 초기화하는 동안 오류가 발생했습니다. 다시 시도하세요.");
     }
   };
 
-  const requestMicrophonePermission = async () => {
+  // 음성 인식 시작
+  const startListening = useCallback(async () => {
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach(track => track.stop()); // 권한만 요청하고 마이크 중지
-      console.log("Microphone permission granted");
-    } catch (error) {
-      console.error("Microphone permission denied", error);
-      alert("마이크 권한을 허용해야 합니다. 브라우저 설정에서 마이크 사용을 허용해주세요.");
-    }
-  };
-
-  const startListening = useCallback(() => {
-    if (!recognition.current) {
-      console.log("Reinitializing speech recognition...");
-      initializeRecognition();
-    }
-    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true }); // 마이크 권한 요청
+      if (!recognition.current) {
+        initializeRecognition();
+      }
       recognition.current.start();
       setIsListening(true);
     } catch (error) {
       console.error("Error starting speech recognition", error);
-      alert("음성 인식을 시작할 수 없습니다. 브라우저 설정을 확인하세요.");
+      alert("마이크 사용이 차단되었습니다. 브라우저 설정에서 마이크 권한을 확인하고 다시 시도하세요.");
     }
   }, []);
 
+  // 음성 인식 중지
   const stopListening = useCallback(() => {
     if (recognition.current) {
       try {
@@ -110,6 +94,7 @@ export default function WhisperTranslator() {
     }
   }, []);
 
+  // 번역 API 요청
   const translateText = async (text) => {
     if (!text) return;
     try {
