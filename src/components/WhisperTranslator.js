@@ -8,17 +8,29 @@ export default function MasonLiveTranslator() {
   const recognition = useRef(null);
 
   useEffect(() => {
-    if (!("webkitSpeechRecognition" in window)) {
+    if (!window.SpeechRecognition && !window.webkitSpeechRecognition) {
       alert("Your browser does not support speech recognition.");
       return;
     }
   }, []);
 
+  const requestMicrophonePermission = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop()); // 마이크 권한만 요청하고 즉시 해제
+      console.log("Microphone permission granted");
+    } catch (error) {
+      console.error("Microphone permission denied", error);
+      alert("마이크 권한이 필요합니다. 설정에서 브라우저의 마이크 사용을 허용해주세요.");
+    }
+  };
+
   const initializeRecognition = () => {
     if (recognition.current) return;
 
     try {
-      recognition.current = new webkitSpeechRecognition();
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      recognition.current = new SpeechRecognition();
       recognition.current.continuous = true;
       recognition.current.interimResults = true;
       recognition.current.lang = "auto"; // 자동 감지
@@ -114,11 +126,10 @@ export default function MasonLiveTranslator() {
   return (
     <div className="p-5 text-center">
       <h1 className="text-2xl font-bold mb-4">Mason 실시간 번역기</h1>
-      <select 
-        value={language} 
-        onChange={(e) => setLanguage(e.target.value)} 
-        className="border p-2 mb-4"
-      >
+      <button onClick={requestMicrophonePermission} className="bg-green-500 text-white p-2 rounded mb-4">
+        마이크 권한 요청
+      </button>
+      <select value={language} onChange={(e) => setLanguage(e.target.value)} className="border p-2 mb-4">
         <option value="en">English</option>
         <option value="es">Spanish</option>
         <option value="fr">French</option>
@@ -128,10 +139,7 @@ export default function MasonLiveTranslator() {
         <option value="vi">Vietnamese</option>
       </select>
       <div className="mb-4">
-        <button 
-          onClick={isListening ? stopListening : startListening} 
-          className="bg-blue-500 text-white p-2 rounded"
-        >
+        <button onClick={isListening ? stopListening : startListening} className="bg-blue-500 text-white p-2 rounded">
           {isListening ? "Stop Listening" : "Start Listening"}
         </button>
       </div>
