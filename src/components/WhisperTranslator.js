@@ -112,3 +112,4 @@ export default function MasonLiveTranslator() {
     </div>
   );
 }
+
