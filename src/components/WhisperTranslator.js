@@ -47,7 +47,7 @@ export default function WhisperTranslator() {
 
       recognition.current.onerror = (event) => {
         console.error("Speech recognition error", event);
-        const errorMessage = event?.error || event?.message || event?.type || "Unknown error";
+        const errorMessage = event?.error ?? event?.message ?? event?.type ?? "Unknown error";
         alert(`음성 인식 오류 발생: ${errorMessage}`);
         setIsListening(false);
       };
@@ -58,9 +58,11 @@ export default function WhisperTranslator() {
       };
 
       recognition.current.onresult = (event) => {
+        if (!event?.results || event.results.length === 0) return;
+
         const finalTranscript = Array.from(event.results)
           .filter((result) => result.isFinal)
-          .map((result) => result[0].transcript)
+          .map((result) => result[0]?.transcript || "")
           .join(" ");
 
         setText(finalTranscript.trim());
@@ -69,6 +71,16 @@ export default function WhisperTranslator() {
     } catch (error) {
       console.error("Error initializing speech recognition", error);
       alert("음성 인식을 초기화하는 동안 오류가 발생했습니다. 다시 시도하세요.");
+    }
+  };
+
+  const requestMicrophonePermission = async () => {
+    try {
+      await navigator.mediaDevices.getUserMedia({ audio: true });
+      console.log("Microphone permission granted");
+    } catch (error) {
+      console.error("Microphone permission denied", error);
+      alert("마이크 권한을 허용해야 합니다. 브라우저 설정에서 마이크 사용을 허용해주세요.");
     }
   };
 
@@ -114,6 +126,12 @@ export default function WhisperTranslator() {
   return (
     <div className="p-5 text-center">
       <h1 className="text-2xl font-bold mb-4">Whisper Translator</h1>
+      <button 
+        onClick={requestMicrophonePermission} 
+        className="bg-green-500 text-white p-2 rounded mb-4"
+      >
+        마이크 권한 요청
+      </button>
       <select 
         value={language} 
         onChange={(e) => setLanguage(e.target.value)} 
