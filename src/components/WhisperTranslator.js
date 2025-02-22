@@ -99,7 +99,7 @@ export default function MasonLiveTranslator() {
     if (!text) return;
     try {
       const response = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang === "auto" ? "" : sourceLang}|${targetLang}`
       );
       const data = await response.json();
       setTranslatedText(data?.responseData?.translatedText || "Translation error");
