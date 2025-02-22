@@ -1,5 +1,5 @@
 import React from 'react';
-import WhisperTranslator from './components';
+import WhisperTranslator from './components/WhisperTranslator';
 
 function App() {
   return (
