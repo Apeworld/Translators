@@ -21,7 +21,7 @@ export default function MasonLiveTranslator() {
       recognition.current = new webkitSpeechRecognition();
       recognition.current.continuous = true;
       recognition.current.interimResults = true;
-      recognition.current.lang = "ko-KR";
+      recognition.current.lang = "auto"; // 자동 감지
 
       recognition.current.onstart = () => {
         console.log("Speech recognition started");
@@ -39,7 +39,7 @@ export default function MasonLiveTranslator() {
         setIsListening(false);
       };
 
-      recognition.current.onresult = (event) => {
+      recognition.current.onresult = async (event) => {
         if (!event.results || event.results.length === 0) return;
 
         const finalTranscript = Array.from(event.results)
@@ -48,7 +48,10 @@ export default function MasonLiveTranslator() {
           .join(" ");
 
         setText(finalTranscript.trim());
-        translateText(finalTranscript.trim(), language);
+
+        const detectedLang = await detectLanguage(finalTranscript.trim());
+        console.log("Detected Language:", detectedLang);
+        translateText(finalTranscript.trim(), detectedLang, language);
       };
     } catch (error) {
       console.error("Error initializing speech recognition", error);
@@ -62,14 +65,13 @@ export default function MasonLiveTranslator() {
       initializeRecognition();
     }
     try {
-      recognition.current.lang = language;
       recognition.current.start();
       setIsListening(true);
     } catch (error) {
       console.error("Error starting speech recognition", error);
       alert("음성 인식을 시작할 수 없습니다. 브라우저 설정을 확인하세요.");
     }
-  }, [language]);
+  }, []);
 
   const stopListening = useCallback(() => {
     if (recognition.current) {
@@ -82,11 +84,24 @@ export default function MasonLiveTranslator() {
     }
   }, []);
 
-  const translateText = async (text, targetLang) => {
+  const detectLanguage = async (text) => {
+    try {
+      const response = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|en`
+      );
+      const data = await response.json();
+      return data?.responseData?.match?.language || "en";
+    } catch (error) {
+      console.error("Language detection error", error);
+      return "en";
+    }
+  };
+
+  const translateText = async (text, sourceLang, targetLang) => {
     if (!text) return;
     try {
       const response = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=ko|${targetLang}`
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=${sourceLang}|${targetLang}`
       );
       const data = await response.json();
       setTranslatedText(data?.responseData?.translatedText || "Translation error");
